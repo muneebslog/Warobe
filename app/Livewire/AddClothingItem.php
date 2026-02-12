@@ -34,7 +34,7 @@ class AddClothingItem extends Component
             'color' => ['required', 'string', 'max:100'],
             'formality' => ['required', 'string', 'in:casual,office,wedding,jummah,eid,interview'],
             'season' => ['required', 'string', 'in:summer,winter,all'],
-            'image' => ['nullable', 'image', 'max:2048'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:14096'],
         ];
     }
 
