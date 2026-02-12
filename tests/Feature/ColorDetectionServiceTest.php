@@ -29,9 +29,11 @@ function createSolidColorImage(string $hexColor, int $width = 100, int $height =
 it('detects white correctly', function () {
     $path = createSolidColorImage('#ffffff');
     try {
-        $result = app(ColorDetectionService::class)->detectDominantColor($path);
+        $result = app(ColorDetectionService::class)->detect($path);
         expect($result['family'])->toBe('white');
         expect($result['hex'])->toStartWith('#');
+        expect($result)->toHaveKey('rgb');
+        expect($result['rgb'])->toHaveCount(3);
     } finally {
         @unlink($path);
     }
@@ -40,9 +42,10 @@ it('detects white correctly', function () {
 it('detects black correctly', function () {
     $path = createSolidColorImage('#000000');
     try {
-        $result = app(ColorDetectionService::class)->detectDominantColor($path);
+        $result = app(ColorDetectionService::class)->detect($path);
         expect($result['family'])->toBe('black');
         expect($result['hex'])->toStartWith('#');
+        expect($result['rgb'])->toHaveCount(3);
     } finally {
         @unlink($path);
     }
@@ -51,9 +54,10 @@ it('detects black correctly', function () {
 it('detects red correctly', function () {
     $path = createSolidColorImage('#ff0000');
     try {
-        $result = app(ColorDetectionService::class)->detectDominantColor($path);
+        $result = app(ColorDetectionService::class)->detect($path);
         expect($result['family'])->toBe('red');
         expect($result['hex'])->toStartWith('#');
+        expect($result['rgb'])->toHaveCount(3);
     } finally {
         @unlink($path);
     }
@@ -62,9 +66,10 @@ it('detects red correctly', function () {
 it('detects blue correctly', function () {
     $path = createSolidColorImage('#0000ff');
     try {
-        $result = app(ColorDetectionService::class)->detectDominantColor($path);
+        $result = app(ColorDetectionService::class)->detect($path);
         expect($result['family'])->toBe('blue');
         expect($result['hex'])->toStartWith('#');
+        expect($result['rgb'])->toHaveCount(3);
     } finally {
         @unlink($path);
     }
@@ -73,9 +78,10 @@ it('detects blue correctly', function () {
 it('detects green correctly', function () {
     $path = createSolidColorImage('#00ff00');
     try {
-        $result = app(ColorDetectionService::class)->detectDominantColor($path);
+        $result = app(ColorDetectionService::class)->detect($path);
         expect($result['family'])->toBe('green');
         expect($result['hex'])->toStartWith('#');
+        expect($result['rgb'])->toHaveCount(3);
     } finally {
         @unlink($path);
     }
@@ -84,20 +90,22 @@ it('detects green correctly', function () {
 it('detects low saturation grey correctly', function () {
     $path = createSolidColorImage('#808080');
     try {
-        $result = app(ColorDetectionService::class)->detectDominantColor($path);
+        $result = app(ColorDetectionService::class)->detect($path);
         expect($result['family'])->toBe('grey');
         expect($result['hex'])->toStartWith('#');
+        expect($result['rgb'])->toHaveCount(3);
     } finally {
         @unlink($path);
     }
 });
 
-it('detects warm brown-ish color as brown or beige', function () {
+it('detects warm brown-ish color as brown', function () {
     $path = createSolidColorImage('#965a32'); // RGB 150, 90, 50
     try {
-        $result = app(ColorDetectionService::class)->detectDominantColor($path);
-        expect($result['family'])->toBeIn(['brown', 'beige']);
+        $result = app(ColorDetectionService::class)->detect($path);
+        expect($result['family'])->toBe('brown');
         expect($result['hex'])->toStartWith('#');
+        expect($result['rgb'])->toHaveCount(3);
     } finally {
         @unlink($path);
     }

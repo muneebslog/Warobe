@@ -68,7 +68,7 @@ class AddClothingItem extends Component
                 return;
             }
 
-            $detected = app(ColorDetectionService::class)->detectDominantColorFromBinary($contents);
+            $detected = app(ColorDetectionService::class)->detectFromBinary($contents);
             $this->color_family = $detected['family'];
             $this->color_hex = $detected['hex'];
         } catch (\Throwable $e) {
