@@ -38,6 +38,8 @@ class ColorDetectionService
 
     /**
      * Sample center of image and map average RGB to hex + color family.
+     * Ignores near-white, near-black and very low-saturation pixels so the
+     * garment color is detected instead of the background.
      *
      * @param  ImageInterface  $image
      * @return array{hex: string, family: string}
@@ -51,6 +53,8 @@ class ColorDetectionService
 
         $totalR = $totalG = $totalB = 0;
         $count = 0;
+        $totalRAll = $totalGAll = $totalBAll = 0;
+        $countAll = 0;
 
         $yStart = (int) floor($height * 0.2);
         $yEnd = (int) ceil($height * 0.8);
@@ -65,9 +69,24 @@ class ColorDetectionService
                         continue;
                     }
                     $rgb = $color->convertTo(RgbColor::class);
-                    $totalR += $rgb->red()->value();
-                    $totalG += $rgb->green()->value();
-                    $totalB += $rgb->blue()->value();
+                    $r = $rgb->red()->value();
+                    $g = $rgb->green()->value();
+                    $b = $rgb->blue()->value();
+
+                    $totalRAll += $r;
+                    $totalGAll += $g;
+                    $totalBAll += $b;
+                    $countAll++;
+
+                    $hsl = $this->rgbToHsl($r / 255, $g / 255, $b / 255);
+                    $l = $hsl[2];
+                    $s = $hsl[1];
+                    if ($l >= 0.92 || $l <= 0.08 || $s <= 0.12) {
+                        continue;
+                    }
+                    $totalR += $r;
+                    $totalG += $g;
+                    $totalB += $b;
                     $count++;
                 } catch (\Throwable) {
                     continue;
@@ -75,13 +94,18 @@ class ColorDetectionService
             }
         }
 
-        if ($count === 0) {
+        if ($count > 0) {
+            $r = (int) round($totalR / $count);
+            $g = (int) round($totalG / $count);
+            $b = (int) round($totalB / $count);
+        } elseif ($countAll > 0) {
+            $r = (int) round($totalRAll / $countAll);
+            $g = (int) round($totalGAll / $countAll);
+            $b = (int) round($totalBAll / $countAll);
+        } else {
             return ['hex' => '#808080', 'family' => 'grey'];
         }
 
-        $r = (int) round($totalR / $count);
-        $g = (int) round($totalG / $count);
-        $b = (int) round($totalB / $count);
         $hex = sprintf('#%02x%02x%02x', $r, $g, $b);
         $family = $this->rgbToFamily($r, $g, $b);
 
