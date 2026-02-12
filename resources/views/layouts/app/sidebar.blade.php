@@ -93,6 +93,7 @@
 
         {{ $slot }}
 
+        @stack('scripts')
         @fluxScripts
     </body>
 </html>

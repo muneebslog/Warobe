@@ -1,9 +1,4 @@
 <div>
-    @if ($image)
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
-    @endif
-
     <flux:card class="mb-6">
         <flux:heading size="lg" class="mb-4">{{ __('Add clothing item') }}</flux:heading>
         <form wire:submit="save" class="space-y-4">
@@ -28,54 +23,57 @@
                     {{ __('Uploading & detecting color…') }}
                 </div>
                 @if ($image)
-                    <div class="mt-3 space-y-3">
-                        <div
-                            x-data="{
-                                cropper: null,
-                                initCropper() {
-                                    const img = this.$refs.cropImage;
-                                    if (!img) return;
-                                    if (typeof Cropper === 'undefined') {
-                                        setTimeout(() => this.initCropper(), 100);
-                                        return;
-                                    }
-                                    if (this.cropper) { this.cropper.destroy(); this.cropper = null; }
-                                    this.cropper = new Cropper(img, {
-                                        aspectRatio: NaN,
-                                        viewMode: 1,
-                                        dragMode: 'move',
-                                        autoCropArea: 0.8,
-                                    });
-                                },
-                                detectFromCrop() {
-                                    if (!this.cropper) return;
-                                    const canvas = this.cropper.getCroppedCanvas({ maxWidth: 800, maxHeight: 800 });
-                                    if (!canvas) return;
-                                    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                                    const base64 = dataUrl.replace(/^data:image\/[^;]+;base64,/, '');
-                                    $wire.detectFromCroppedArea(dataUrl);
+                    <div
+                        class="mt-3 space-y-3"
+                        x-data="{
+                            cropper: null,
+                            initCropper() {
+                                const img = this.$refs.cropImage;
+                                if (!img) return;
+                                if (typeof window.Cropper === 'undefined') {
+                                    setTimeout(() => this.initCropper(), 150);
+                                    return;
                                 }
-                            }"
-                            x-init="$nextTick(() => initCropper())"
-                            wire:ignore
+                                if (this.cropper) {
+                                    this.cropper.destroy();
+                                    this.cropper = null;
+                                }
+                                this.cropper = new window.Cropper(img, {
+                                    aspectRatio: NaN,
+                                    viewMode: 1,
+                                    dragMode: 'move',
+                                    autoCropArea: 0.7,
+                                });
+                            },
+                            detectFromCrop() {
+                                if (!this.cropper) return;
+                                const canvas = this.cropper.getCroppedCanvas({ maxWidth: 800, maxHeight: 800 });
+                                if (!canvas) return;
+                                const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                                $wire.detectFromCroppedArea(dataUrl);
+                            }
+                        }"
+                        x-init="$nextTick(() => initCropper())"
+                    >
+                        <p class="text-sm text-zinc-600 dark:text-zinc-400">
+                            {{ __('Drag to move, resize the box to focus on the shirt or pant, then detect color from that area.') }}
+                        </p>
+                        <div
+                            class="cropper-wrap rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 overflow-hidden"
+                            style="height: 320px; width: 100%;"
                         >
-                            <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
-                                {{ __('Drag to move, resize the box to focus on the shirt or pant, then detect color from that area.') }}
-                            </p>
-                            <div class="max-h-80 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800">
-                                <img
-                                    x-ref="cropImage"
-                                    src="{{ $image->temporaryUrl() }}"
-                                    alt=""
-                                    class="block max-h-80 w-full object-contain"
-                                    @load="initCropper()"
-                                />
-                            </div>
-                            <flux:button type="button" variant="outline" class="mt-2" x-on:click="detectFromCrop()" wire:loading.attr="disabled">
-                                <span wire:loading.remove wire:target="detectFromCroppedArea">{{ __('Detect color from selected area') }}</span>
-                                <span wire:loading wire:target="detectFromCroppedArea">{{ __('Detecting…') }}</span>
-                            </flux:button>
+                            <img
+                                x-ref="cropImage"
+                                src="{{ $image->temporaryUrl() }}"
+                                alt=""
+                                style="max-width: 100%; max-height: 320px; display: block;"
+                                @load="initCropper()"
+                            />
                         </div>
+                        <flux:button type="button" variant="outline" class="mt-2" x-on:click="detectFromCrop()" wire:loading.attr="disabled">
+                            <span wire:loading.remove wire:target="detectFromCroppedArea">{{ __('Detect color from selected area') }}</span>
+                            <span wire:loading wire:target="detectFromCroppedArea">{{ __('Detecting…') }}</span>
+                        </flux:button>
                         @if ($color_hex)
                             <div class="flex flex-wrap items-center gap-4">
                                 <div class="flex flex-col gap-1">
