@@ -78,7 +78,10 @@ class OutfitSuggestionService
                     continue;
                 }
                 $comboScore = ($s['score'] + $p['score']) / 2;
-                $comboScore += $this->scoreColorCompatibility($s['item']->color, $p['item']->color);
+                $comboScore += $this->scoreColorCompatibility(
+                    $s['item']->color_family ?? $s['item']->color ?? '',
+                    $p['item']->color_family ?? $p['item']->color ?? ''
+                );
                 $combinations[] = [
                     'shirt' => $s['item'],
                     'pant' => $p['item'],
@@ -123,7 +126,7 @@ class OutfitSuggestionService
     }
 
     /**
-     * Score color compatibility (rule-based). Higher = better.
+     * Score color compatibility (rule-based). Uses color_family only. Higher = better.
      */
     public function scoreColorCompatibility(string $color1, string $color2): float
     {

@@ -20,6 +20,8 @@ class ClothingItem extends Model
         'name',
         'type',
         'color',
+        'color_family',
+        'color_hex',
         'formality',
         'season',
         'status',
@@ -39,6 +41,14 @@ class ClothingItem extends Model
             'return_date' => 'date',
             'last_worn_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Display color for UI: prefers color_family, falls back to legacy color.
+     */
+    public function getDisplayColorAttribute(): string
+    {
+        return $this->color_family ?? $this->color ?? '';
     }
 
     /**
