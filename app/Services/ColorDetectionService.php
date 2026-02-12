@@ -34,19 +34,43 @@ class ColorDetectionService
 
         try {
             $tmpPath = $this->downscaleToTemp($imagePath);
-            $rgb = ColorThief::getColor($tmpPath);
+            $palette = ColorThief::getPalette($tmpPath, 5, 10, null, 'array');
 
-            if ($rgb === null || ! is_array($rgb) || count($rgb) < 3) {
-                Log::warning('ColorThief returned no dominant color', ['path' => $imagePath]);
-                throw new \RuntimeException('Could not extract dominant color from image.');
+            if ($palette === null || $palette === []) {
+                Log::warning('ColorThief returned no palette', ['path' => $imagePath]);
+                throw new \RuntimeException('Could not extract colors from image.');
             }
 
-            $r = (int) $rgb[0];
-            $g = (int) $rgb[1];
-            $b = (int) $rgb[2];
+            $neutralFamilies = ['grey', 'white', 'black'];
+            $r = $g = $b = null;
+            $family = null;
+
+            foreach ($palette as $color) {
+                if (! is_array($color) || count($color) < 3) {
+                    continue;
+                }
+                $cr = (int) $color[0];
+                $cg = (int) $color[1];
+                $cb = (int) $color[2];
+                $cFamily = $this->classifyToFamily($cr, $cg, $cb);
+                if (! in_array($cFamily, $neutralFamilies, true)) {
+                    $r = $cr;
+                    $g = $cg;
+                    $b = $cb;
+                    $family = $cFamily;
+                    break;
+                }
+            }
+
+            if ($r === null) {
+                $first = $palette[0];
+                $r = (int) $first[0];
+                $g = (int) $first[1];
+                $b = (int) $first[2];
+                $family = $this->classifyToFamily($r, $g, $b);
+            }
 
             $hex = $this->rgbToHex($r, $g, $b);
-            $family = $this->classifyToFamily($r, $g, $b);
 
             return [
                 'family' => $family,

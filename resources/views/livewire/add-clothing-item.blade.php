@@ -43,16 +43,10 @@
 
             <div>
                 <flux:label>{{ __('Color') }}</flux:label>
-                @if ($image)
-                    @if ($color_detection_error)
-                        <p class="mt-1 mb-1 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-2 py-1.5 rounded">
-                            Color detection failed: {{ $color_detection_error }}
-                        </p>
-                    @else
-                        <p class="mt-1 mb-1 text-xs font-mono text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-1 rounded">
-                            Detected: family = <strong>{{ $color_family ?: '(empty)' }}</strong>, hex = <strong>{{ $color_hex ?? '(null)' }}</strong>
-                        </p>
-                    @endif
+                @if ($image && $color_detection_error)
+                    <p class="mt-1 mb-1 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-2 py-1.5 rounded">
+                        {{ __('Color detection failed: :message', ['message' => $color_detection_error]) }}
+                    </p>
                 @endif
                 <flux:select wire:model="color_family" class="mt-1" required>
                     @foreach ($colorFamilyOptions as $value => $label)
