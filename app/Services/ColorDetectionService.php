@@ -7,9 +7,23 @@ use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\Interfaces\ImageInterface;
 
+/**
+ * Detects dominant color from images. Tuned for typical at-home clothing photos:
+ * items on bed/floor/hanger, phone camera, indoor lighting, light/white backgrounds.
+ */
 class ColorDetectionService
 {
-    private const SAMPLE_SIZE = 50;
+    /** Resize to this before sampling. Slightly larger = more stable for phone pics. */
+    private const SAMPLE_SIZE = 64;
+
+    /** Exclude pixels lighter than this (white/cream backgrounds). */
+    private const LIGHT_THRESHOLD = 0.90;
+
+    /** Exclude pixels darker than this (shadows, black). */
+    private const DARK_THRESHOLD = 0.08;
+
+    /** Exclude pixels with saturation below this (grey/neutral). */
+    private const MIN_SATURATION = 0.08;
 
     /**
      * Detect dominant color from image binary (e.g. file contents).
@@ -37,9 +51,9 @@ class ColorDetectionService
     }
 
     /**
-     * Sample center of image and map average RGB to hex + color family.
-     * Ignores near-white, near-black and very low-saturation pixels so the
-     * garment color is detected instead of the background.
+     * Sample center of image and pick the dominant color family (most frequent
+     * hue), then average RGB of that family only. Tuned for normal clothing
+     * photos: ignores white/cream backgrounds, shadows, and grey; keeps pastels.
      *
      * @param  ImageInterface  $image
      * @return array{hex: string, family: string}
@@ -51,15 +65,15 @@ class ColorDetectionService
         $width = $image->width();
         $height = $image->height();
 
-        $totalR = $totalG = $totalB = 0;
-        $count = 0;
+        /** @var array<string, array<int, array{0: int, 1: int, 2: int}>> $byFamily */
+        $byFamily = [];
         $totalRAll = $totalGAll = $totalBAll = 0;
         $countAll = 0;
 
-        $yStart = (int) floor($height * 0.2);
-        $yEnd = (int) ceil($height * 0.8);
-        $xStart = (int) floor($width * 0.2);
-        $xEnd = (int) ceil($width * 0.8);
+        $yStart = (int) floor($height * 0.15);
+        $yEnd = (int) ceil($height * 0.85);
+        $xStart = (int) floor($width * 0.15);
+        $xEnd = (int) ceil($width * 0.85);
 
         for ($y = $yStart; $y < $yEnd; $y++) {
             for ($x = $xStart; $x < $xEnd; $x++) {
@@ -81,35 +95,56 @@ class ColorDetectionService
                     $hsl = $this->rgbToHsl($r / 255, $g / 255, $b / 255);
                     $l = $hsl[2];
                     $s = $hsl[1];
-                    if ($l >= 0.92 || $l <= 0.08 || $s <= 0.12) {
+                    if ($l >= self::LIGHT_THRESHOLD || $l <= self::DARK_THRESHOLD || $s <= self::MIN_SATURATION) {
                         continue;
                     }
-                    $totalR += $r;
-                    $totalG += $g;
-                    $totalB += $b;
-                    $count++;
+
+                    $family = $this->rgbToFamily($r, $g, $b);
+                    if (! isset($byFamily[$family])) {
+                        $byFamily[$family] = [];
+                    }
+                    $byFamily[$family][] = [$r, $g, $b];
                 } catch (\Throwable) {
                     continue;
                 }
             }
         }
 
-        if ($count > 0) {
-            $r = (int) round($totalR / $count);
-            $g = (int) round($totalG / $count);
-            $b = (int) round($totalB / $count);
-        } elseif ($countAll > 0) {
+        if (count($byFamily) > 0) {
+            $dominantFamily = '';
+            $maxCount = 0;
+            foreach ($byFamily as $family => $pixels) {
+                $c = count($pixels);
+                if ($c > $maxCount) {
+                    $maxCount = $c;
+                    $dominantFamily = $family;
+                }
+            }
+            $pixels = $byFamily[$dominantFamily];
+            $totalR = $totalG = $totalB = 0;
+            foreach ($pixels as $rgb) {
+                $totalR += $rgb[0];
+                $totalG += $rgb[1];
+                $totalB += $rgb[2];
+            }
+            $n = count($pixels);
+            $r = (int) round($totalR / $n);
+            $g = (int) round($totalG / $n);
+            $b = (int) round($totalB / $n);
+            $hex = sprintf('#%02x%02x%02x', $r, $g, $b);
+            return ['hex' => $hex, 'family' => $dominantFamily];
+        }
+
+        if ($countAll > 0) {
             $r = (int) round($totalRAll / $countAll);
             $g = (int) round($totalGAll / $countAll);
             $b = (int) round($totalBAll / $countAll);
-        } else {
-            return ['hex' => '#808080', 'family' => 'grey'];
+            $hex = sprintf('#%02x%02x%02x', $r, $g, $b);
+            $family = $this->rgbToFamily($r, $g, $b);
+            return ['hex' => $hex, 'family' => $family];
         }
 
-        $hex = sprintf('#%02x%02x%02x', $r, $g, $b);
-        $family = $this->rgbToFamily($r, $g, $b);
-
-        return ['hex' => $hex, 'family' => $family];
+        return ['hex' => '#808080', 'family' => 'grey'];
     }
 
     /**
