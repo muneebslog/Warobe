@@ -51,9 +51,10 @@ class ColorDetectionService
     }
 
     /**
-     * Sample center of image and pick the dominant color family (most frequent
-     * hue), then average RGB of that family only. Tuned for normal clothing
-     * photos: ignores white/cream backgrounds, shadows, and grey; keeps pastels.
+     * Sample the whole image and pick the dominant color family (most frequent
+     * hue), then average RGB of that family only. Full-frame sampling so we
+     * still get the garment when it's off-center (e.g. shirt on left, background right).
+     * Ignores white/cream, near-black, and grey so background doesn't dominate.
      *
      * @param  ImageInterface  $image
      * @return array{hex: string, family: string}
@@ -70,13 +71,8 @@ class ColorDetectionService
         $totalRAll = $totalGAll = $totalBAll = 0;
         $countAll = 0;
 
-        $yStart = (int) floor($height * 0.15);
-        $yEnd = (int) ceil($height * 0.85);
-        $xStart = (int) floor($width * 0.15);
-        $xEnd = (int) ceil($width * 0.85);
-
-        for ($y = $yStart; $y < $yEnd; $y++) {
-            for ($x = $xStart; $x < $xEnd; $x++) {
+        for ($y = 0; $y < $height; $y++) {
+            for ($x = 0; $x < $width; $x++) {
                 try {
                     $color = $image->pickColor($x, $y);
                     if ($color->isClear()) {
