@@ -19,11 +19,11 @@ class ColorDetectionService
     /** Exclude pixels lighter than this (white/cream backgrounds). */
     private const LIGHT_THRESHOLD = 0.90;
 
-    /** Exclude pixels darker than this (shadows, black). */
-    private const DARK_THRESHOLD = 0.08;
+    /** Exclude pixels darker than this (pure black/shadows). */
+    private const DARK_THRESHOLD = 0.05;
 
     /** Exclude pixels with saturation below this (grey/neutral). */
-    private const MIN_SATURATION = 0.08;
+    private const MIN_SATURATION = 0.05;
 
     /**
      * Detect dominant color from image binary (e.g. file contents).
@@ -107,14 +107,21 @@ class ColorDetectionService
         }
 
         if (count($byFamily) > 0) {
-            $dominantFamily = '';
-            $maxCount = 0;
+            $neutralFamilies = ['grey', 'white', 'black'];
+            $byCount = [];
             foreach ($byFamily as $family => $pixels) {
-                $c = count($pixels);
-                if ($c > $maxCount) {
-                    $maxCount = $c;
+                $byCount[$family] = count($pixels);
+            }
+            arsort($byCount, SORT_NUMERIC);
+            $dominantFamily = null;
+            foreach (array_keys($byCount) as $family) {
+                if (! in_array($family, $neutralFamilies, true)) {
                     $dominantFamily = $family;
+                    break;
                 }
+            }
+            if ($dominantFamily === null) {
+                $dominantFamily = array_key_first($byCount);
             }
             $pixels = $byFamily[$dominantFamily];
             $totalR = $totalG = $totalB = 0;
