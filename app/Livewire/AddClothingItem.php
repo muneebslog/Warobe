@@ -78,6 +78,39 @@ class AddClothingItem extends Component
         }
     }
 
+    /**
+     * Run color detection on a cropped image (base64 data URL or raw base64).
+     * Call this after the user selects a focus area so detection uses only the garment.
+     */
+    public function detectFromCroppedArea(string $imageData): void
+    {
+        $this->color_detection_error = null;
+
+        if (str_starts_with($imageData, 'data:')) {
+            $imageData = preg_replace('#^data:image/[^;]+;base64,#', '', $imageData);
+        }
+        if ($imageData === '') {
+            $this->color_detection_error = __('Invalid image data.');
+            return;
+        }
+
+        $contents = base64_decode($imageData, true);
+        if ($contents === false || $contents === '') {
+            $this->color_detection_error = __('Could not decode image.');
+            return;
+        }
+
+        try {
+            $detected = app(ColorDetectionService::class)->detectFromBinary($contents);
+            $this->color_family = $detected['family'];
+            $this->color_hex = $detected['hex'];
+        } catch (\Throwable $e) {
+            $this->color_family = 'grey';
+            $this->color_hex = null;
+            $this->color_detection_error = $e->getMessage();
+        }
+    }
+
     public function save(): void
     {
         $validated = $this->validate();
