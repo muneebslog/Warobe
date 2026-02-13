@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\ClothingItem;
+use App\Models\OutfitLog;
 use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Cache;
@@ -59,6 +60,26 @@ class WardrobeGrid extends Component
         $item->update([
             'status' => 'worn',
             'last_worn_at' => now(),
+        ]);
+
+        $shirtId = null;
+        $pantId = null;
+        $shalwarKameezId = null;
+        if ($item->type === 'shirt') {
+            $shirtId = $item->id;
+        } elseif ($item->type === 'pant') {
+            $pantId = $item->id;
+        } elseif ($item->type === 'shalwar_kameez') {
+            $shalwarKameezId = $item->id;
+        }
+
+        OutfitLog::query()->create([
+            'user_id' => $item->user_id,
+            'event_type' => 'casual',
+            'shirt_id' => $shirtId,
+            'pant_id' => $pantId,
+            'shalwar_kameez_id' => $shalwarKameezId,
+            'worn_at' => now(),
         ]);
 
         Cache::forget(WardrobeDashboard::dashboardStatsCacheKey());
